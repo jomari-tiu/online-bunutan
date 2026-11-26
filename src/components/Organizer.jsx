@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, linkFor } from '../lib/api.js'
+import { api, setBackTo } from '../lib/api.js'
 import { color } from '../lib/colors.js'
 
 const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
 
 export default function Organizer() {
   const [status, setStatus] = useState(null) // { generated, upToDate, createdAt, people: [...] }
-  const [copied, setCopied] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -35,16 +34,6 @@ export default function Organizer() {
     }
   }
 
-  async function copy(text, id) {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      window.prompt('Copy this:', text) // clipboard blocked (e.g. plain http on a phone)
-    }
-    setCopied(id)
-    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1800)
-  }
-
   if (!status) {
     return error ? (
       <section className="card center narrow">
@@ -64,7 +53,7 @@ export default function Organizer() {
       {isLocal && (
         <p className="note">
           ⚠️ You’re on <strong>{window.location.host}</strong>. Links made here only work on this computer. Put the app
-          online first, then copy and send the links from the online address.
+          online first and use the online address.
         </p>
       )}
 
@@ -106,9 +95,9 @@ export default function Organizer() {
                     {p.drawn ? '✅ drawn' : p.hasPin ? '🔒 opened' : 'not opened'}
                   </span>
                 </span>
-                <button className="btn small ghost" onClick={() => copy(linkFor(p.token), p.id)}>
-                  {copied === p.id ? '✓ Copied' : '🔗 Link'}
-                </button>
+                <a className="btn small ghost" href={`#/p/${p.token}`} onClick={() => setBackTo('#/organizer')}>
+                  🔗 Link
+                </a>
               </li>
             ))}
           </ul>

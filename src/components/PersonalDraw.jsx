@@ -164,6 +164,7 @@ export default function PersonalDraw({ token, event }) {
 }
 
 const MAX_WISHES = 3
+const MAX_WISH_LENGTH = 300
 
 /** Three text boxes for gift ideas. Empty boxes are ignored. */
 function WishlistEditor({ initial, saveLabel, onSave }) {
@@ -195,14 +196,27 @@ function WishlistEditor({ initial, saveLabel, onSave }) {
       }}
     >
       {items.map((value, i) => (
-        <input
-          key={i}
-          value={value}
-          maxLength={100}
-          placeholder={['e.g. Scented candle', 'e.g. Coffee mug', 'e.g. A good book'][i]}
-          onChange={(e) => change(i, e.target.value)}
-          aria-label={`Wish ${i + 1}`}
-        />
+        <label key={i} className="wish-field">
+          <span className="wish-label">
+            Wish {i + 1}
+            <small className={value.length > MAX_WISH_LENGTH - 30 ? 'count near' : 'count'}>
+              {value.length}/{MAX_WISH_LENGTH}
+            </small>
+          </span>
+          <textarea
+            value={value}
+            rows={2}
+            maxLength={MAX_WISH_LENGTH}
+            placeholder={
+              [
+                'e.g. Scented candle (vanilla or lavender)',
+                'e.g. Coffee mug, any color but pink',
+                'e.g. A mystery novel or a cozy book',
+              ][i]
+            }
+            onChange={(e) => change(i, e.target.value)}
+          />
+        </label>
       ))}
       {error && <p className="error">{error}</p>}
       <button className="btn" type="submit" disabled={busy}>

@@ -240,3 +240,14 @@ footer a { color: var(--green); font-weight: 600; text-decoration: none; }
 .wishlist-box li { margin: 4px 0; word-break: break-word; }
 .my-wishlist { border-top: 1px dashed var(--line); margin-top: 22px; padding-top: 16px; max-width: 420px; margin-left: auto; margin-right: auto; }
 .my-wishlist h3 { margin: 0 0 4px; font-size: 1.05rem; }
+a.btn { display: inline-block; text-decoration: none; text-align: center; }
+.wish-field { display: grid; gap: 4px; }
+.wish-label { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; color: var(--muted); font-weight: 600; }
+.wish-label .count { font-weight: 400; font-size: .75rem; }
+.wish-label .count.near { color: var(--red); }
+.wishlist-form textarea {
+  font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fffdf9; color: var(--text); resize: vertical; min-height: 56px; width: 100%;
+}
+.wishlist-form textarea:focus { outline: 2px solid var(--gold); border-color: transparent; }
+.wishlist-box li { white-space: pre-line; }

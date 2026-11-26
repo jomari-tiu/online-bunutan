@@ -82,15 +82,15 @@ test('your scenario: spin on phone A, open on phone B → PIN asked, no second s
 test('wishlist: up to 3 items, PIN required, and the giver sees it', async () => {
   // Noli is Jomari's preset pick. Noli uses PIN 5555 (same as the later "everyone draws" test).
   await call('POST', `/p/${links.Noli}/pin`, { pin: '5555' })
-  const items = ['  Scented candle ', 'Coffee mug', 'Book: any mystery novel']
+  const items = ['  Scented   candle ', 'Coffee mug\r\nany color   \n\n\n\nbut not pink', 'Book: any mystery novel']
 
   assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '0000', items })).status, 401)
   assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: [...items, 'fourth'] })).status, 400)
-  assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: ['x'.repeat(101)] })).status, 400)
+  assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: ['x'.repeat(301)] })).status, 400)
 
   const saved = await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: [...items, '   '] })
   assert.equal(saved.status, 200)
-  assert.deepEqual(saved.data.wishlist, ['Scented candle', 'Coffee mug', 'Book: any mystery novel'])
+  assert.deepEqual(saved.data.wishlist, ['Scented candle', 'Coffee mug\nany color\n\nbut not pink', 'Book: any mystery novel'])
 
   // Noli sees their own wishlist when unlocking (to edit it).
   const mine = await call('POST', `/p/${links.Noli}/unlock`, { pin: '5555' })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, formatDate } from './lib/api.js'
+import { api, formatDate, getBackTo, setBackTo } from './lib/api.js'
 import PersonalDraw from './components/PersonalDraw.jsx'
 import Organizer from './components/Organizer.jsx'
 
@@ -62,7 +62,7 @@ export default function App() {
       <footer>
         {token && (
           <>
-            <a href="#/">← Back to names</a>
+            <a href={getBackTo()}>{getBackTo() === '#/organizer' ? '← Back to organizer' : '← Back to names'}</a>
             <br />
             🤫 Keep your pick secret!
           </>
@@ -111,7 +111,13 @@ function Landing({ event: initial }) {
           <button className="btn ghost" onClick={() => setChosen(null)}>
             No, go back
           </button>
-          <button className="btn" onClick={() => (window.location.hash = `#/p/${chosen.token}`)}>
+          <button
+            className="btn"
+            onClick={() => {
+              setBackTo('#/')
+              window.location.hash = `#/p/${chosen.token}`
+            }}
+          >
             Yes, I’m {chosen.name}
           </button>
         </div>

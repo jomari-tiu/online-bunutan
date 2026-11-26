@@ -19,7 +19,22 @@ export async function api(path, { method = 'GET', body } = {}) {
   return data
 }
 
-export const linkFor = (token) => `${window.location.origin}${window.location.pathname}#/p/${token}`
+// Where the "← Back" link on a personal page goes: the organizer page or the names.
+const BACK_KEY = 'bunutan:back'
+export function setBackTo(hash) {
+  try {
+    sessionStorage.setItem(BACK_KEY, hash)
+  } catch {
+    /* ignore */
+  }
+}
+export function getBackTo() {
+  try {
+    return sessionStorage.getItem(BACK_KEY) === '#/organizer' ? '#/organizer' : '#/'
+  } catch {
+    return '#/'
+  }
+}
 
 export function formatDate(d) {
   const date = new Date(d + 'T00:00:00')

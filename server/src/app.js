@@ -17,7 +17,7 @@ import { checkStorage, loadConfig, readDb, updateDb } from './store.js'
  */
 
 const MAX_WISHES = 3
-const MAX_WISH_LENGTH = 100
+const MAX_WISH_LENGTH = 300
 
 export function createApp({ corsOrigin = '*' } = {}) {
   const app = express()
@@ -148,7 +148,17 @@ export function createApp({ corsOrigin = '*' } = {}) {
     if (!Array.isArray(items) || items.some((x) => typeof x !== 'string')) {
       return fail(res, 400, 'Wishlist must be a list of text items.')
     }
-    const clean = items.map((x) => x.trim().replace(/\s+/g, ' ')).filter(Boolean)
+    // Keep line breaks (wishes are typed in a textarea), but tidy extra spaces and blank lines.
+    const clean = items
+      .map((x) =>
+        x
+          .replace(/\r\n?/g, '\n')
+          .replace(/[^\S\n]+/g, ' ')
+          .replace(/ *\n */g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim(),
+      )
+      .filter(Boolean)
     if (clean.length > MAX_WISHES) return fail(res, 400, `You can add up to ${MAX_WISHES} wishes.`)
     if (clean.some((x) => x.length > MAX_WISH_LENGTH)) {
       return fail(res, 400, `Each wish can be up to ${MAX_WISH_LENGTH} characters.`)
