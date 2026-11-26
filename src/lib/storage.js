@@ -46,15 +46,6 @@ export function linkFor(giverId, recipientId) {
   return `${base}#/p/${encodeToken(giverId, recipientId)}`
 }
 
-export function downloadJson(data, name) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(a.href)
-}
-
 export function formatDate(d) {
   const date = new Date(d + 'T00:00:00')
   return isNaN(date) ? d : date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })

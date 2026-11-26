@@ -12,9 +12,9 @@ export function generateAssignment(ids, preset = {}, rng = Math.random) {
   const all = new Set(ids)
   const usedRecipients = new Set()
   for (const [g, r] of Object.entries(preset)) {
-    if (!all.has(g) || !all.has(r)) throw new Error(`Preset pick ${g} → ${r} uses a name that isn't in the list.`)
-    if (g === r) throw new Error(`${g} can't be preset to pick themselves.`)
-    if (usedRecipients.has(r)) throw new Error(`${r} is preset as the pick of two people.`)
+    if (!all.has(g) || !all.has(r)) throw new Error('A preset pick uses a name that isn’t in the participant list.')
+    if (g === r) throw new Error('A preset pick has someone picking themselves.')
+    if (usedRecipients.has(r)) throw new Error('Two preset picks have the same recipient.')
     usedRecipients.add(r)
   }
 

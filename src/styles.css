@@ -213,15 +213,3 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 
 .btn.small { padding: 6px 12px; font-size: .85rem; border-radius: 10px; }
 footer a { color: var(--muted); }
 
-/* dev-only pairs table */
-.dev-box { border: 2px dashed #9b5de5; background: #f8f3ff; border-radius: 14px; padding: 12px 14px; margin: 16px 0; }
-.dev-box h3 { margin: 0 0 4px; color: #6a3fb5; font-size: 1rem; }
-.small { font-size: .85rem; margin: 4px 0; }
-.table-scroll { overflow-x: auto; }
-.dev-table { width: 100%; border-collapse: collapse; font-size: .9rem; background: #fff; border-radius: 10px; overflow: hidden; }
-.dev-table th, .dev-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #ece4f7; white-space: nowrap; }
-.dev-table th { background: #ede3fb; color: #4b2a85; font-weight: 700; }
-.dev-table tr:last-child td { border-bottom: 0; }
-.dev-table a { color: var(--green); font-weight: 700; }
-.tag { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: #eee; }
-.tag.preset { background: #ffe1e4; color: var(--red); font-weight: 700; }

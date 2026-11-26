@@ -43,7 +43,7 @@ export default function App() {
       </main>
 
       <footer>
-        {token ? '🤫 This link is only for you. Don’t share it!' : <a href="#/organizer">Organizer</a>}
+        {token && '🤫 This link is only for you. Don’t share it!'}
       </footer>
     </div>
   )

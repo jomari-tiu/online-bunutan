@@ -13,7 +13,7 @@ npm test           # checks the pairing logic
 
 ## How it works
 
-1. **Edit `src/participants.json`**: the names, the event name, budget and date, and any `alreadyPicked` pairs (e.g. Jekisa → Mama).
+1. **Edit `src/participants.json`**: the names, the event name, budget and date, and any `alreadyPicked` pairs.
 2. **Put the app online** (`npm run build`, then upload `dist/`). Links made on `localhost` only work on your computer.
 3. **Organizer**: open `https://<your-site>/#/organizer` and press **Generate all pairs** once. Every pair is made at the same moment, on your device.
 4. **Send each person their own link** with **Copy message**, in a private chat.
@@ -23,7 +23,7 @@ npm test           # checks the pairing logic
 All pairs are decided together, in one place, before anyone draws: every name is used exactly once and nobody gets themselves. A phone never checks a shared "available list". It only reveals the answer inside its own link. So it doesn't matter if everyone draws at the same second.
 
 ### Things to know
-- **Don't regenerate after sending links.** New pairs won't match the old links. The app warns you before regenerating.
-- **Back up the pairs** with **Export JSON**. They're saved only in the organizer's browser.
-- The organizer *can* see all pairs (**Reveal all pairs**). The link is scrambled so the name isn't readable in the URL, but it isn't real encryption.
-- If you change `participants.json` after generating, the organizer page tells you to regenerate and resend.
+- The organizer page is at `/#/organizer`. Nothing links to it, so participants won't stumble onto it.
+- **Generate once, then send.** The pairs are saved only in the organizer's browser, so create and send all links from the same browser. Clearing that browser's data, or using another device, means generating new pairs and resending every link.
+- If you change `participants.json` after generating, the organizer page asks you to generate new pairs.
+- The link is scrambled so the name isn't readable in the URL, but it isn't real encryption.
