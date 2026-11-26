@@ -10,23 +10,24 @@ const point = (deg, r = R - 4) => {
 }
 
 /**
- * The winner is decided by `onSpin()` (the fair draw), then the wheel is
- * rotated so that slice lands under the pointer at the top.
+ * The winner comes from `onSpin()` (the server), then the wheel is rotated so
+ * that slice lands under the pointer at the top.
  */
 export default function Wheel({ options, onSpin, onDone }) {
   const [rotation, setRotation] = useState(0)
   const [spinning, setSpinning] = useState(false)
   const seg = 360 / options.length
 
-  function spin() {
+  async function spin() {
     if (spinning) return
-    const resultId = onSpin()
+    setSpinning(true)
+    const resultId = await onSpin() // the server decides; null means it failed
     const index = options.findIndex((o) => o.id === resultId)
+    if (index < 0) return setSpinning(false)
     const jitter = (Math.random() - 0.5) * seg * 0.7
     const target = index * seg + seg / 2 + jitter // slice center, measured clockwise from the top
     const extra = (((-target - rotation) % 360) + 360) % 360
     setRotation(rotation + 360 * 6 + extra)
-    setSpinning(true)
     setTimeout(onDone, SPIN_MS + 600)
   }
 

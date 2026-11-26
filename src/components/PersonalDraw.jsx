@@ -1,51 +1,93 @@
-import { useMemo, useState } from 'react'
-import { BY_ID, EVENT, PARTICIPANTS } from '../lib/storage.js'
-import { decodeToken } from '../lib/token.js'
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../lib/api.js'
 import { color } from '../lib/colors.js'
 import Wheel from './Wheel.jsx'
 import Envelopes from './Envelopes.jsx'
 
 /**
- * A participant's private page. The answer is already inside the link, chosen
- * by the organizer when all pairs were generated together. The wheel and the
- * envelopes only reveal it, so phones never have to check each other.
+ * A participant's private page. The link only holds a random token; the server
+ * keeps the pick, the PIN and whether they already drew. So on ANY device:
+ *   first open  → set a PIN → spin / open an envelope → reveal
+ *   later opens → enter the PIN → straight to the reveal (no second spin)
  */
-export default function PersonalDraw({ token }) {
-  const data = useMemo(() => decodeToken(token), [token])
-  const giver = data && BY_ID[data.g]
-  const recipient = data && BY_ID[data.r]
-  const seenKey = `bunutan:seen:${token}`
-  const [step, setStep] = useState(() => (wasSeen(seenKey) ? 'reveal' : 'intro'))
+export default function PersonalDraw({ token, event }) {
+  const [me, setMe] = useState(null) // { id, name, hasPin, drawn }
+  const [step, setStep] = useState('loading') // loading | bad | setpin | locked | intro | wheel | envelopes | reveal
+  const [pin, setPin] = useState('') // kept in memory after unlocking, for the draw call
+  const [recipient, setRecipient] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    api(`/p/${token}`)
+      .then((d) => {
+        setMe(d)
+        setStep(d.hasPin ? 'locked' : 'setpin')
+      })
+      .catch((e) => {
+        setError(e.message)
+        setStep('bad')
+      })
+  }, [token])
 
   // Everyone except yourself, for the wheel and the envelopes.
   const others = useMemo(
-    () => PARTICIPANTS.map((p, i) => ({ ...p, color: color(i) })).filter((p) => p.id !== data?.g),
-    [data],
+    () => event.participants.map((p, i) => ({ ...p, color: color(i) })).filter((p) => p.id !== me?.id),
+    [event, me],
   )
 
-  if (!giver || !recipient || giver.id === recipient.id) {
+  async function savePin(newPin) {
+    try {
+      await api(`/p/${token}/pin`, { method: 'POST', body: { pin: newPin } })
+      setPin(newPin)
+      setStep('intro')
+    } catch (e) {
+      if (e.status === 409) setStep('locked') // someone already set it (e.g. on another device)
+      throw e
+    }
+  }
+
+  async function unlock(enteredPin) {
+    const d = await api(`/p/${token}/unlock`, { method: 'POST', body: { pin: enteredPin } })
+    setPin(enteredPin)
+    if (d.drawn) {
+      setRecipient(d.recipient)
+      setStep('reveal')
+    } else {
+      setStep('intro')
+    }
+  }
+
+  // Called when the wheel starts / an envelope opens. Returns the recipient id, or null on error.
+  async function draw() {
+    try {
+      const d = await api(`/p/${token}/draw`, { method: 'POST', body: { pin } })
+      setRecipient(d.recipient)
+      return d.recipient.id
+    } catch (e) {
+      setError(e.message)
+      return null
+    }
+  }
+
+  if (step === 'loading') return <div className="loading-inline">🎁</div>
+
+  if (step === 'bad') {
     return (
       <section className="card center narrow">
         <div className="big-emoji">🤔</div>
-        <h2>This link doesn’t look right</h2>
-        <p className="muted">Please ask the organizer to send your bunutan link again.</p>
+        <h2>Can’t open this link</h2>
+        <p className="muted">{error || 'Please ask the organizer to send your bunutan link again.'}</p>
       </section>
     )
   }
 
-  const reveal = () => {
-    try {
-      localStorage.setItem(seenKey, '1')
-    } catch {
-      /* fine: the link always shows the same answer anyway */
-    }
-    setStep('reveal')
-  }
+  if (step === 'setpin') return <SetPin name={me.name} onSave={savePin} />
+  if (step === 'locked') return <Unlock name={me.name} onUnlock={unlock} />
 
   if (step === 'intro') {
     return (
       <section className="card center">
-        <h2>Hi {giver.name}! 👋</h2>
+        <h2>Hi {me.name}! 👋</h2>
         <p className="muted">Make sure nobody is looking 👀 How do you want to pick?</p>
         <div className="methods">
           <button className="method" onClick={() => setStep('wheel')}>
@@ -66,8 +108,9 @@ export default function PersonalDraw({ token }) {
   if (step === 'wheel') {
     return (
       <section className="card center">
-        <h2>Spin it, {giver.name}! 🎡</h2>
-        <Wheel options={others} onSpin={() => recipient.id} onDone={reveal} />
+        <h2>Spin it, {me.name}! 🎡</h2>
+        <Wheel options={others} onSpin={draw} onDone={() => setStep('reveal')} />
+        {error && <p className="error">{error}</p>}
       </section>
     )
   }
@@ -75,8 +118,14 @@ export default function PersonalDraw({ token }) {
   if (step === 'envelopes') {
     return (
       <section className="card center">
-        <h2>Pick a letter, {giver.name} 💌</h2>
-        <Envelopes count={others.length} onPick={() => recipient.id} nameOf={(id) => BY_ID[id].name} onDone={reveal} />
+        <h2>Pick a letter, {me.name} 💌</h2>
+        <Envelopes
+          count={others.length}
+          onPick={draw}
+          nameOf={(id) => (id === recipient?.id ? recipient.name : '')}
+          onDone={() => setStep('reveal')}
+        />
+        {error && <p className="error">{error}</p>}
       </section>
     )
   }
@@ -88,7 +137,7 @@ export default function PersonalDraw({ token }) {
           <i key={i} style={{ '--i': i }} />
         ))}
       </div>
-      <p className="muted">{giver.name}, your monito/monita is…</p>
+      <p className="muted">{me.name}, your monito/monita is…</p>
       <h1 className="recipient">🎁 {recipient.name}</h1>
       {recipient.wishlist ? (
         <p className="wishlist">
@@ -97,16 +146,97 @@ export default function PersonalDraw({ token }) {
       ) : (
         <p className="muted">No wishlist given. Surprise them!</p>
       )}
-      {EVENT.budget && <p className="muted">Budget: {EVENT.budget}</p>}
-      <p className="note">🤫 Keep it secret! You can open this link again anytime to check.</p>
+      {event.budget && <p className="muted">Budget: {event.budget}</p>}
+      <p className="note">🤫 Keep it secret! Open this link again anytime and enter your PIN to check.</p>
     </section>
   )
 }
 
-function wasSeen(key) {
-  try {
-    return localStorage.getItem(key) === '1'
-  } catch {
-    return false
-  }
+function SetPin({ name, onSave }) {
+  const [pin, setPin] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  return (
+    <section className="card center narrow">
+      <h2>Hi {name}! 👋</h2>
+      <p className="muted">First, set a 4-digit PIN. You’ll need it every time you open this link, on any phone.</p>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!/^\d{4}$/.test(pin)) return setError('PIN must be 4 digits.')
+          if (pin !== confirm) return setError('The PINs don’t match. Try again.')
+          setBusy(true)
+          try {
+            await onSave(pin)
+          } catch (err) {
+            setError(err.message)
+            setBusy(false)
+          }
+        }}
+      >
+        <label className="pin-label">
+          New PIN
+          <PinInput value={pin} onChange={setPin} autoFocus />
+        </label>
+        <label className="pin-label">
+          Type it again
+          <PinInput value={confirm} onChange={setConfirm} />
+        </label>
+        {error && <p className="error">{error}</p>}
+        <button className="btn big" type="submit" disabled={busy}>
+          🔒 Save PIN
+        </button>
+      </form>
+      <p className="muted small">Remember it! Nobody can see your PIN.</p>
+    </section>
+  )
+}
+
+function Unlock({ name, onUnlock }) {
+  const [pin, setPin] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  return (
+    <section className="card center narrow">
+      <div className="big-emoji">🔒</div>
+      <h2>Welcome back, {name}!</h2>
+      <p className="muted">Enter your 4-digit PIN to continue.</p>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault()
+          setBusy(true)
+          try {
+            await onUnlock(pin)
+          } catch (err) {
+            setError(err.message)
+            setPin('')
+            setBusy(false)
+          }
+        }}
+      >
+        <PinInput value={pin} onChange={setPin} autoFocus />
+        {error && <p className="error">{error}</p>}
+        <button className="btn big" type="submit" disabled={busy || pin.length !== 4}>
+          Unlock
+        </button>
+      </form>
+    </section>
+  )
+}
+
+function PinInput({ value, onChange, autoFocus }) {
+  return (
+    <input
+      className="pin"
+      type="password"
+      inputMode="numeric"
+      autoComplete="off"
+      maxLength={4}
+      placeholder="••••"
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 4))}
+      autoFocus={autoFocus}
+    />
+  )
 }

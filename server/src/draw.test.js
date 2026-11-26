@@ -2,7 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { generateAssignment, isValidAssignment } from './draw.js'
-import { decodeToken, encodeToken } from './token.js'
 
 const config = JSON.parse(readFileSync(new URL('../participants.json', import.meta.url), 'utf8'))
 const slug = (n) => n.trim().toLowerCase().replace(/\s+/g, '-')
@@ -33,23 +32,6 @@ test('Jomari always keeps Noli, and nobody else ever gets Noli', () => {
     assert.equal(pairs.jomari, 'noli')
     for (const g of IDS) if (g !== 'jomari') assert.notEqual(pairs[g], 'noli')
   }
-})
-
-test('drawing "at the same time": every link reveals a different name', () => {
-  // Every phone just decodes its own link, so opening them all at once is the
-  // same as opening them one by one: no two links can show the same name.
-  const pairs = generateAssignment(IDS, PRESET)
-  const links = IDS.map((g) => encodeToken(g, pairs[g]))
-  const revealed = links.map((t) => decodeToken(t)) // all "at once"
-  assert.equal(new Set(revealed.map((d) => d.r)).size, IDS.length)
-  revealed.forEach((d, i) => assert.equal(d.g, IDS[i]))
-})
-
-test('the link does not show the recipient name in plain text', () => {
-  const t = encodeToken('jomari', 'trixie')
-  assert.ok(!t.toLowerCase().includes('trixie'))
-  assert.deepEqual(decodeToken(t), { v: 1, g: 'jomari', r: 'trixie' })
-  assert.equal(decodeToken('garbage!!'), null)
 })
 
 test('every group size from 2 to 20 works', () => {

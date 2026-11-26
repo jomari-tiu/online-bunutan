@@ -213,3 +213,14 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 
 .btn.small { padding: 6px 12px; font-size: .85rem; border-radius: 10px; }
 footer a { color: var(--muted); }
 
+.pin-label { align-items: center; margin-top: 8px; }
+.pin-label .pin { margin-top: 4px; }
+
+/* backend states */
+.loading-inline { text-align: center; font-size: 3rem; padding: 40px 0; animation: pulse 1s infinite alternate; }
+@keyframes pulse { to { opacity: .4; transform: scale(.92); } }
+.badge { font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #eee; color: var(--muted); margin-left: 4px; }
+.badge.opened { background: #fff1cc; color: #8a6200; }
+.badge.done { background: #dcf3e6; color: var(--green); }
+.link.inline { margin: 0; font-size: inherit; }
+.narrow form input[name="key"] { width: 100%; }

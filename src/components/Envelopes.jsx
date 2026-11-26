@@ -1,15 +1,17 @@
 import { useState } from 'react'
 
 /**
- * Sealed envelopes, one per name still in the pool. The name inside is drawn
- * fairly at the moment you open one, so every envelope gives the same odds.
+ * Sealed envelopes, one per other participant. Your pick was already made by
+ * the organizer, so whichever envelope you open reveals it.
  */
 export default function Envelopes({ count, onPick, nameOf, onDone }) {
   const [opened, setOpened] = useState(null) // { index, recipientId }
 
-  function open(index) {
+  async function open(index) {
     if (opened) return
-    const recipientId = onPick()
+    setOpened({ index, recipientId: null })
+    const recipientId = await onPick() // the server decides; null means it failed
+    if (!recipientId) return setOpened(null)
     setOpened({ index, recipientId })
     setTimeout(onDone, 2200)
   }
@@ -29,7 +31,7 @@ export default function Envelopes({ count, onPick, nameOf, onDone }) {
               style={{ '--d': `${(i % 8) * 0.08}s` }}
             >
               <span className="flap" />
-              <span className="letter">{isOpen ? nameOf(opened.recipientId) : ''}</span>
+              <span className="letter">{isOpen && opened.recipientId ? nameOf(opened.recipientId) : ''}</span>
               <span className="seal">{isOpen ? '' : i + 1}</span>
             </button>
           )
