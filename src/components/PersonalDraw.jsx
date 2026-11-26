@@ -6,14 +6,16 @@ import Envelopes from './Envelopes.jsx'
 /**
  * A participant's private page. The link only holds a random token; the server
  * keeps the pick, the PIN and whether they already drew. So on ANY device:
- *   first open  → set a PIN → pick a letter → reveal
+ *   first open  → set a PIN → (optional) add up to 3 wishes → pick a letter → reveal
  *   later opens → enter the PIN → straight to the reveal (no second pick)
+ * The reveal shows your pick's wishlist, and lets you edit your own.
  */
 export default function PersonalDraw({ token, event }) {
   const [me, setMe] = useState(null) // { id, name, hasPin, drawn }
-  const [step, setStep] = useState('loading') // loading | bad | setpin | locked | envelopes | reveal
+  const [step, setStep] = useState('loading') // loading | bad | setpin | locked | wishlist | envelopes | reveal
   const [pin, setPin] = useState('') // kept in memory after unlocking, for the draw call
   const [recipient, setRecipient] = useState(null)
+  const [myWishlist, setMyWishlist] = useState([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function PersonalDraw({ token, event }) {
     try {
       await api(`/p/${token}/pin`, { method: 'POST', body: { pin: newPin } })
       setPin(newPin)
-      setStep('envelopes')
+      setStep('wishlist')
     } catch (e) {
       if (e.status === 409) setStep('locked') // someone already set it (e.g. on another device)
       throw e
@@ -48,12 +50,18 @@ export default function PersonalDraw({ token, event }) {
   async function unlock(enteredPin) {
     const d = await api(`/p/${token}/unlock`, { method: 'POST', body: { pin: enteredPin } })
     setPin(enteredPin)
+    setMyWishlist(d.me?.wishlist ?? [])
     if (d.drawn) {
       setRecipient(d.recipient)
       setStep('reveal')
     } else {
       setStep('envelopes')
     }
+  }
+
+  async function saveWishlist(items) {
+    const d = await api(`/p/${token}/wishlist`, { method: 'POST', body: { pin, items } })
+    setMyWishlist(d.wishlist)
   }
 
   // Called when an envelope is opened. Returns the recipient id, or null on error.
@@ -83,6 +91,29 @@ export default function PersonalDraw({ token, event }) {
   if (step === 'setpin') return <SetPin name={me.name} onSave={savePin} />
   if (step === 'locked') return <Unlock name={me.name} onUnlock={unlock} />
 
+  if (step === 'wishlist') {
+    return (
+      <section className="card center narrow">
+        <div className="big-emoji">📝</div>
+        <h2>Your wishlist</h2>
+        <p className="muted">
+          Add up to 3 gift ideas. Whoever picks you will see them. You can change them anytime.
+        </p>
+        <WishlistEditor
+          initial={myWishlist}
+          saveLabel="Save & pick a letter"
+          onSave={async (items) => {
+            await saveWishlist(items)
+            setStep('envelopes')
+          }}
+        />
+        <button className="link" onClick={() => setStep('envelopes')}>
+          Skip for now →
+        </button>
+      </section>
+    )
+  }
+
   if (step === 'envelopes') {
     return (
       <section className="card center">
@@ -108,16 +139,76 @@ export default function PersonalDraw({ token, event }) {
       </div>
       <p className="muted">{me.name}, your monito/monita is…</p>
       <h1 className="recipient">🎁 {recipient.name}</h1>
-      {recipient.wishlist ? (
-        <p className="wishlist">
-          <strong>Wishlist:</strong> {recipient.wishlist}
-        </p>
+      {recipient.wishlist.length > 0 ? (
+        <div className="wishlist-box">
+          <strong>🎁 {recipient.name}’s wishlist</strong>
+          <ol>
+            {recipient.wishlist.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ol>
+        </div>
       ) : (
-        <p className="muted">No wishlist given. Surprise them!</p>
+        <p className="muted">{recipient.name} hasn’t added a wishlist yet. Check back later, or surprise them!</p>
       )}
       {event.budget && <p className="muted">Budget: {event.budget}</p>}
       <p className="note">🤫 Keep it secret! Open this link again anytime and enter your PIN to check.</p>
+
+      <div className="my-wishlist">
+        <h3>📝 Your wishlist</h3>
+        <p className="muted small">Up to 3 ideas for whoever picked you.</p>
+        <WishlistEditor initial={myWishlist} saveLabel="Save my wishlist" onSave={saveWishlist} />
+      </div>
     </section>
+  )
+}
+
+const MAX_WISHES = 3
+
+/** Three text boxes for gift ideas. Empty boxes are ignored. */
+function WishlistEditor({ initial, saveLabel, onSave }) {
+  const [items, setItems] = useState(() => [...initial, '', '', ''].slice(0, MAX_WISHES))
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const change = (i, value) => {
+    setItems((list) => list.map((x, j) => (j === i ? value : x)))
+    setSaved(false)
+  }
+
+  return (
+    <form
+      className="wishlist-form"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        setBusy(true)
+        setError('')
+        try {
+          await onSave(items.map((x) => x.trim()).filter(Boolean))
+          setSaved(true)
+        } catch (err) {
+          setError(err.message)
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      {items.map((value, i) => (
+        <input
+          key={i}
+          value={value}
+          maxLength={100}
+          placeholder={['e.g. Scented candle', 'e.g. Coffee mug', 'e.g. A good book'][i]}
+          onChange={(e) => change(i, e.target.value)}
+          aria-label={`Wish ${i + 1}`}
+        />
+      ))}
+      {error && <p className="error">{error}</p>}
+      <button className="btn" type="submit" disabled={busy}>
+        {saved ? '✓ Saved' : saveLabel}
+      </button>
+    </form>
   )
 }
 

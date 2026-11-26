@@ -16,6 +16,9 @@ import { checkStorage, loadConfig, readDb, updateDb } from './store.js'
  * the right PIN is given.
  */
 
+const MAX_WISHES = 3
+const MAX_WISH_LENGTH = 100
+
 export function createApp({ corsOrigin = '*' } = {}) {
   const app = express()
   // CORS_ORIGIN: your frontend's address(es). A trailing "/" is ignored, since browsers never send one.
@@ -88,10 +91,19 @@ export function createApp({ corsOrigin = '*' } = {}) {
     return found
   }
 
+  // A person's wishlist: what they saved themselves, else the optional one in participants.json.
+  async function wishlistOf(id) {
+    const [db, { participants }] = await Promise.all([readDb(), loadConfig()])
+    const saved = db.people[id]?.wishlist
+    if (Array.isArray(saved)) return saved
+    const fromConfig = participants.find((x) => x.id === id)?.wishlist
+    return fromConfig ? [String(fromConfig)] : []
+  }
+
   async function recipientInfo(id) {
     const { participants } = await loadConfig()
     const p = participants.find((x) => x.id === id)
-    return p ? { id: p.id, name: p.name, wishlist: p.wishlist } : { id, name: id, wishlist: '' }
+    return { id, name: p?.name ?? id, wishlist: await wishlistOf(id) }
   }
 
   app.get('/api/p/:token', async (req, res) => {
@@ -123,7 +135,30 @@ export function createApp({ corsOrigin = '*' } = {}) {
     const found = await withPin(req, res)
     if (!found) return
     const drawn = Boolean(found.person.drawnAt)
-    res.json({ drawn, recipient: drawn ? await recipientInfo(found.person.recipientId) : null })
+    res.json({
+      drawn,
+      recipient: drawn ? await recipientInfo(found.person.recipientId) : null,
+      me: { wishlist: await wishlistOf(found.id) },
+    })
+  })
+
+  // Save your own wishlist (up to 3 items). The person who picked you sees it.
+  app.post('/api/p/:token/wishlist', async (req, res) => {
+    const items = req.body?.items
+    if (!Array.isArray(items) || items.some((x) => typeof x !== 'string')) {
+      return fail(res, 400, 'Wishlist must be a list of text items.')
+    }
+    const clean = items.map((x) => x.trim().replace(/\s+/g, ' ')).filter(Boolean)
+    if (clean.length > MAX_WISHES) return fail(res, 400, `You can add up to ${MAX_WISHES} wishes.`)
+    if (clean.some((x) => x.length > MAX_WISH_LENGTH)) {
+      return fail(res, 400, `Each wish can be up to ${MAX_WISH_LENGTH} characters.`)
+    }
+    const found = await withPin(req, res)
+    if (!found) return
+    await updateDb((db) => {
+      if (db.people[found.id]) db.people[found.id].wishlist = clean
+    })
+    res.json({ wishlist: clean })
   })
 
   // Open an envelope: marks the draw as done and reveals the pick.

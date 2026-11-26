@@ -79,6 +79,29 @@ test('your scenario: spin on phone A, open on phone B → PIN asked, no second s
   assert.equal(unlock.data.recipient.name, 'Noli')
 })
 
+test('wishlist: up to 3 items, PIN required, and the giver sees it', async () => {
+  // Noli is Jomari's preset pick. Noli uses PIN 5555 (same as the later "everyone draws" test).
+  await call('POST', `/p/${links.Noli}/pin`, { pin: '5555' })
+  const items = ['  Scented candle ', 'Coffee mug', 'Book: any mystery novel']
+
+  assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '0000', items })).status, 401)
+  assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: [...items, 'fourth'] })).status, 400)
+  assert.equal((await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: ['x'.repeat(101)] })).status, 400)
+
+  const saved = await call('POST', `/p/${links.Noli}/wishlist`, { pin: '5555', items: [...items, '   '] })
+  assert.equal(saved.status, 200)
+  assert.deepEqual(saved.data.wishlist, ['Scented candle', 'Coffee mug', 'Book: any mystery novel'])
+
+  // Noli sees their own wishlist when unlocking (to edit it).
+  const mine = await call('POST', `/p/${links.Noli}/unlock`, { pin: '5555' })
+  assert.deepEqual(mine.data.me.wishlist, saved.data.wishlist)
+
+  // Jomari (who picked Noli) sees it on the result.
+  const giver = await call('POST', `/p/${links.Jomari}/unlock`, { pin: '1234' })
+  assert.equal(giver.data.recipient.name, 'Noli')
+  assert.deepEqual(giver.data.recipient.wishlist, saved.data.wishlist)
+})
+
 test('5 wrong PINs lock the link for a while', async () => {
   await call('POST', `/p/${links.Cindy}/pin`, { pin: '4321' })
   for (let i = 0; i < 5; i++) await call('POST', `/p/${links.Cindy}/unlock`, { pin: '0000' })
