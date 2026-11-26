@@ -183,7 +183,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 
 .chips li { background: #f7efe3; border-radius: 999px; padding: 4px 12px; font-size: .9rem; }
 .links { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; }
 .links li {
-  display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px;
 }
 /* name on top, status underneath, so neither gets cut off */
@@ -192,9 +192,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 
 .person .badge { margin-left: 0; }
 .links .btn.small { white-space: nowrap; }
 @media (max-width: 480px) {
-  .links li { grid-template-columns: auto 1fr auto; padding: 8px; gap: 10px; }
-  .links li .ghost { display: none; }
-  .wide-only { display: none; }
+  .links li { padding: 8px; gap: 10px; }
 }
 .btn.small { padding: 6px 12px; font-size: .85rem; border-radius: 10px; }
 footer a { color: var(--muted); }

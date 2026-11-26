@@ -57,9 +57,6 @@ export default function Organizer() {
 
   const ready = status.generated && status.upToDate
   const drawn = status.people.filter((p) => p.drawn).length
-  const inviteText = (p) =>
-    `Hi ${p.name}! 🎁 Here’s your bunutan link. Open it to draw your monito/monita. Don’t share it with anyone! ${linkFor(p.token)}`
-
   return (
     <section className="card">
       <h2>📋 Organizer</h2>
@@ -92,8 +89,7 @@ export default function Organizer() {
             <div style={{ width: `${(drawn / status.people.length) * 100}%` }} />
           </div>
           <p className="muted">
-            🎁 {drawn}/{status.people.length} drawn. Send each person <strong>only their own</strong> link (private
-            message, not the group chat).{' '}
+            🎁 {drawn}/{status.people.length} drawn. Everyone taps their name on the home page.{' '}
             <button className="link inline" onClick={() => load()}>
               ↻ Refresh
             </button>
@@ -110,17 +106,8 @@ export default function Organizer() {
                     {p.drawn ? '✅ drawn' : p.hasPin ? '🔒 opened' : 'not opened'}
                   </span>
                 </span>
-                <button className="btn small" onClick={() => copy(inviteText(p), p.id)}>
-                  {copied === p.id ? (
-                    '✓ Copied'
-                  ) : (
-                    <>
-                      📋 Copy<span className="wide-only"> message</span>
-                    </>
-                  )}
-                </button>
-                <button className="btn small ghost" onClick={() => copy(linkFor(p.token), p.id + ':link')}>
-                  {copied === p.id + ':link' ? '✓' : '🔗 Link'}
+                <button className="btn small ghost" onClick={() => copy(linkFor(p.token), p.id)}>
+                  {copied === p.id ? '✓ Copied' : '🔗 Link'}
                 </button>
               </li>
             ))}
