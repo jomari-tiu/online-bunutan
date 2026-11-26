@@ -10,10 +10,9 @@ process.env.DATA_FILE = path.join(dir, 'db.json')
 const { createApp } = await import('./app.js')
 
 let server, base
-const KEY = 'test-key'
 
 before(async () => {
-  server = createApp({ adminKey: KEY }).listen(0)
+  server = createApp().listen(0)
   await new Promise((r) => server.once('listening', r))
   base = `http://127.0.0.1:${server.address().port}/api`
 })
@@ -23,10 +22,10 @@ after(() => {
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
-async function call(method, url, body, admin) {
+async function call(method, url, body) {
   const res = await fetch(base + url, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(admin ? { 'x-admin-key': KEY } : {}) },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   })
   return { status: res.status, data: await res.json() }
@@ -34,17 +33,20 @@ async function call(method, url, body, admin) {
 
 let links // name -> token
 
-test('organizer key is required', async () => {
-  assert.equal((await call('GET', '/admin/status')).status, 401)
-})
-
 test('organizer generates all pairs once; status never shows who picked whom', async () => {
-  assert.equal((await call('POST', '/admin/generate', {}, true)).status, 200)
-  assert.equal((await call('POST', '/admin/generate', {}, true)).status, 409, 'second generate must be refused')
-  const { data } = await call('GET', '/admin/status', null, true)
+  assert.equal((await call('POST', '/admin/generate', {})).status, 200)
+  assert.equal((await call('POST', '/admin/generate', {})).status, 409, 'second generate must be refused')
+  const { data } = await call('GET', '/admin/status')
   assert.equal(data.people.length, 16)
   assert.ok(!JSON.stringify(data).includes('recipient'))
   links = Object.fromEntries(data.people.map((p) => [p.name, p.token]))
+})
+
+test('welcome page: every name has its link, and no picks are included', async () => {
+  const { data } = await call('GET', '/event')
+  assert.equal(data.started, true)
+  for (const p of data.participants) assert.equal(p.token, links[p.name])
+  assert.ok(!JSON.stringify(data).includes('recipient'))
 })
 
 test('opening a link does not reveal the pick before a PIN', async () => {
@@ -108,7 +110,7 @@ test('everyone draws at the same time: all 16 picks are different, presets kept'
 })
 
 test('pairs can’t be regenerated once people have drawn', async () => {
-  const { status } = await call('POST', '/admin/generate', {}, true)
+  const { status } = await call('POST', '/admin/generate', {})
   assert.equal(status, 409)
 })
 

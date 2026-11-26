@@ -3,12 +3,12 @@
 // Production: set VITE_API_URL to the server's address when building.
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
-export async function api(path, { method = 'GET', body, adminKey } = {}) {
+export async function api(path, { method = 'GET', body } = {}) {
   let res
   try {
     res = await fetch(`${BASE}/api${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(adminKey ? { 'x-admin-key': adminKey } : {}) },
+      headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch {

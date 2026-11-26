@@ -16,7 +16,7 @@ import { loadConfig, readDb, updateDb } from './store.js'
  * the right PIN is given.
  */
 
-export function createApp({ adminKey, corsOrigin = '*' }) {
+export function createApp({ corsOrigin = '*' } = {}) {
   const app = express()
   // CORS_ORIGIN: your frontend's address(es). A trailing "/" is ignored, since browsers never send one.
   const origins = corsOrigin.split(',').map((s) => s.trim().replace(/\/+$/, ''))
@@ -29,9 +29,22 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
 
   app.get('/api/health', (req, res) => res.json({ ok: true }))
 
+  // Event info + names for the welcome page. Each name carries its link token so
+  // people can tap their own name (token is null until the organizer generates pairs).
   app.get('/api/event', async (req, res) => {
-    const { eventName, budget, exchangeDate, participants } = await loadConfig()
-    res.json({ eventName, budget, exchangeDate, participants: participants.map(({ id, name }) => ({ id, name })) })
+    const [{ eventName, budget, exchangeDate, participants }, db] = await Promise.all([loadConfig(), readDb()])
+    res.json({
+      eventName,
+      budget,
+      exchangeDate,
+      started: Object.keys(db.people).length > 0,
+      participants: participants.map(({ id, name }) => ({
+        id,
+        name,
+        token: db.people[id]?.token ?? null,
+        hasPin: Boolean(db.people[id]?.pinHash),
+      })),
+    })
   })
 
   // ---------- participant (by private link token) ----------
@@ -101,7 +114,7 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
     res.json({ ok: true })
   })
 
-  // Later opens: check the PIN. If they already drew, return the pick (no spinning again).
+  // Later opens: check the PIN. If they already drew, return the pick (no second pick).
   app.post('/api/p/:token/unlock', async (req, res) => {
     const found = await withPin(req, res)
     if (!found) return
@@ -109,7 +122,7 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
     res.json({ drawn, recipient: drawn ? await recipientInfo(found.person.recipientId) : null })
   })
 
-  // Spin / open the envelope: marks the draw as done and reveals the pick.
+  // Open an envelope: marks the draw as done and reveals the pick.
   app.post('/api/p/:token/draw', async (req, res) => {
     const found = await withPin(req, res)
     if (!found) return
@@ -123,13 +136,7 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
     res.json({ alreadyDrawn, recipient: await recipientInfo(found.person.recipientId) })
   })
 
-  // ---------- organizer (needs the x-admin-key header) ----------
-
-  const admin = (req, res, next) => {
-    const key = String(req.get('x-admin-key') || '')
-    const ok = key.length === adminKey.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(adminKey))
-    return ok ? next() : fail(res, 401, 'Wrong organizer key.')
-  }
+  // ---------- organizer ----------
 
   function upToDate(db, config) {
     const ids = config.participants.map((p) => p.id)
@@ -142,7 +149,7 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
   }
 
   // Lists links and status (PIN set / drawn). Never includes who picked whom.
-  app.get('/api/admin/status', admin, async (req, res) => {
+  app.get('/api/admin/status', async (req, res) => {
     const [db, config] = await Promise.all([readDb(), loadConfig()])
     const generated = Object.keys(db.people).length > 0
     res.json({
@@ -157,7 +164,7 @@ export function createApp({ adminKey, corsOrigin = '*' }) {
   })
 
   // Makes every pair at once. Refuses to overwrite pairs once anyone has drawn.
-  app.post('/api/admin/generate', admin, async (req, res) => {
+  app.post('/api/admin/generate', async (req, res) => {
     const config = await loadConfig()
     const result = await updateDb((db) => {
       const generated = Object.keys(db.people).length > 0

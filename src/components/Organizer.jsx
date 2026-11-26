@@ -3,31 +3,21 @@ import { api, linkFor } from '../lib/api.js'
 import { color } from '../lib/colors.js'
 
 const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
-const KEY_STORE = 'bunutan:admin-key'
 
 export default function Organizer() {
-  const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem(KEY_STORE) || '')
   const [status, setStatus] = useState(null) // { generated, upToDate, createdAt, people: [...] }
   const [copied, setCopied] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const load = useCallback(
-    async (key = adminKey) => {
-      if (!key) return
-      try {
-        setStatus(await api('/admin/status', { adminKey: key }))
-        setError('')
-      } catch (e) {
-        if (e.status === 401) {
-          sessionStorage.removeItem(KEY_STORE)
-          setAdminKey('')
-        }
-        setError(e.message)
-      }
-    },
-    [adminKey],
-  )
+  const load = useCallback(async () => {
+    try {
+      setStatus(await api('/admin/status'))
+      setError('')
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [])
 
   useEffect(() => {
     load()
@@ -36,7 +26,7 @@ export default function Organizer() {
   async function generate() {
     setBusy(true)
     try {
-      await api('/admin/generate', { method: 'POST', adminKey })
+      await api('/admin/generate', { method: 'POST' })
       await load()
     } catch (e) {
       setError(e.message)
@@ -53,29 +43,6 @@ export default function Organizer() {
     }
     setCopied(id)
     setTimeout(() => setCopied((c) => (c === id ? null : c)), 1800)
-  }
-
-  if (!adminKey) {
-    return (
-      <section className="card center narrow">
-        <h2>📋 Organizer</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            const key = new FormData(e.currentTarget).get('key').trim()
-            if (!key) return
-            sessionStorage.setItem(KEY_STORE, key)
-            setAdminKey(key)
-          }}
-        >
-          <input name="key" type="password" placeholder="Organizer key" autoFocus />
-          {error && <p className="error">{error}</p>}
-          <button className="btn big" type="submit">
-            Enter
-          </button>
-        </form>
-      </section>
-    )
   }
 
   if (!status) {

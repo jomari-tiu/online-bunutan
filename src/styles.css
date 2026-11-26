@@ -123,29 +123,6 @@ input:focus, select:focus { outline: 2px solid var(--gold); border-color: transp
 }
 .narrow select { width: 100%; }
 
-/* draw: method */
-.methods { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 10px 0 18px; }
-@media (max-width: 480px) { .methods { grid-template-columns: 1fr; } }
-.method {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 12px;
-  border: 2px solid var(--line); border-radius: 18px; background: #fffdf9; transition: transform .15s, border-color .15s;
-}
-.method:hover { border-color: var(--red); transform: translateY(-3px); }
-.method small { color: var(--muted); }
-
-/* wheel */
-.wheel-wrap { position: relative; width: min(340px, 100%); margin: 10px auto 0; }
-.wheel {
-  width: 100%; height: auto; display: block; border-radius: 50%;
-  box-shadow: 0 0 0 8px var(--gold), 0 12px 30px rgba(0,0,0,.2);
-  transition-property: transform; transition-timing-function: cubic-bezier(.12, .7, .1, 1);
-}
-.wheel-label { fill: #fff; font-weight: 800; font-size: 15px; paint-order: stroke; stroke: rgba(0,0,0,.25); stroke-width: 3px; }
-.pointer {
-  position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 2;
-  color: var(--red); font-size: 2.2rem; text-shadow: 0 2px 4px rgba(0,0,0,.3);
-}
-
 /* envelopes */
 .envelopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 14px; margin-top: 10px; perspective: 800px; }
 .envelope {
@@ -224,3 +201,11 @@ footer a { color: var(--muted); }
 .badge.done { background: #dcf3e6; color: var(--green); }
 .link.inline { margin: 0; font-size: inherit; }
 .narrow form input[name="key"] { width: 100%; }
+
+/* welcome page: name buttons */
+.chips .chip {
+  border: 2px solid var(--line); background: #fffdf9; border-radius: 999px; padding: 8px 16px;
+  font-weight: 600; color: var(--text); transition: transform .12s, border-color .12s, background .12s;
+}
+.chips .chip:hover { border-color: var(--gold); background: #fff7e0; transform: translateY(-2px); }
+footer a { color: var(--green); font-weight: 600; text-decoration: none; }

@@ -59,24 +59,80 @@ export default function App() {
         )}
       </main>
 
-      <footer>{token && '🤫 This link is only for you. Don’t share it!'}</footer>
+      <footer>
+        {token && (
+          <>
+            <a href="#/">← Back to names</a>
+            <br />
+            🤫 Keep your pick secret!
+          </>
+        )}
+      </footer>
     </div>
   )
 }
 
-function Landing({ event }) {
+/**
+ * Welcome page: tap your name → confirm → go to your private page
+ * (set a PIN the first time, enter it every time after).
+ */
+function Landing({ event: initial }) {
+  const [event, setEvent] = useState(initial)
+  const [chosen, setChosen] = useState(null)
+
+  // Refresh so names that already have a PIN show the lock.
+  useEffect(() => {
+    api('/event')
+      .then(setEvent)
+      .catch(() => {})
+  }, [])
+
+  if (!event.started) {
+    return (
+      <section className="card center narrow">
+        <div className="big-emoji">⏳</div>
+        <h2>Welcome to the bunutan!</h2>
+        <p className="muted">The draw hasn’t started yet. Come back once the organizer opens it.</p>
+      </section>
+    )
+  }
+
+  if (chosen) {
+    return (
+      <section className="card center narrow">
+        <div className="big-emoji">🙋</div>
+        <h2>Are you {chosen.name}?</h2>
+        <p className="muted">
+          {chosen.hasPin
+            ? 'You’ll need your PIN to open your page.'
+            : 'Only continue if this is really you. You’ll set a PIN that protects your pick.'}
+        </p>
+        <div className="row">
+          <button className="btn ghost" onClick={() => setChosen(null)}>
+            No, go back
+          </button>
+          <button className="btn" onClick={() => (window.location.hash = `#/p/${chosen.token}`)}>
+            Yes, I’m {chosen.name}
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="card center narrow">
       <div className="big-emoji">💌</div>
       <h2>Welcome to the bunutan!</h2>
-      <p className="muted">
-        Open the <strong>personal link</strong> the organizer sent you to draw your monito/monita.
-      </p>
-      <ul className="chips">
+      <p className="muted">Tap your name to draw your monito/monita.</p>
+      <div className="chips">
         {event.participants.map((p) => (
-          <li key={p.id}>{p.name}</li>
+          <button key={p.id} className="chip" onClick={() => setChosen(p)}>
+            {p.hasPin && <span aria-label="PIN set">🔒 </span>}
+            {p.name}
+          </button>
         ))}
-      </ul>
+      </div>
+      <p className="muted small">🔒 = already opened. Enter your PIN to see your pick again.</p>
     </section>
   )
 }

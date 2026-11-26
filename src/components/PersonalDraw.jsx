@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
 import { color } from '../lib/colors.js'
-import Wheel from './Wheel.jsx'
 import Envelopes from './Envelopes.jsx'
 
 /**
  * A participant's private page. The link only holds a random token; the server
  * keeps the pick, the PIN and whether they already drew. So on ANY device:
- *   first open  → set a PIN → spin / open an envelope → reveal
- *   later opens → enter the PIN → straight to the reveal (no second spin)
+ *   first open  → set a PIN → pick a letter → reveal
+ *   later opens → enter the PIN → straight to the reveal (no second pick)
  */
 export default function PersonalDraw({ token, event }) {
   const [me, setMe] = useState(null) // { id, name, hasPin, drawn }
-  const [step, setStep] = useState('loading') // loading | bad | setpin | locked | intro | wheel | envelopes | reveal
+  const [step, setStep] = useState('loading') // loading | bad | setpin | locked | envelopes | reveal
   const [pin, setPin] = useState('') // kept in memory after unlocking, for the draw call
   const [recipient, setRecipient] = useState(null)
   const [error, setError] = useState('')
@@ -29,7 +28,7 @@ export default function PersonalDraw({ token, event }) {
       })
   }, [token])
 
-  // Everyone except yourself, for the wheel and the envelopes.
+  // One envelope per other participant.
   const others = useMemo(
     () => event.participants.map((p, i) => ({ ...p, color: color(i) })).filter((p) => p.id !== me?.id),
     [event, me],
@@ -39,7 +38,7 @@ export default function PersonalDraw({ token, event }) {
     try {
       await api(`/p/${token}/pin`, { method: 'POST', body: { pin: newPin } })
       setPin(newPin)
-      setStep('intro')
+      setStep('envelopes')
     } catch (e) {
       if (e.status === 409) setStep('locked') // someone already set it (e.g. on another device)
       throw e
@@ -53,11 +52,11 @@ export default function PersonalDraw({ token, event }) {
       setRecipient(d.recipient)
       setStep('reveal')
     } else {
-      setStep('intro')
+      setStep('envelopes')
     }
   }
 
-  // Called when the wheel starts / an envelope opens. Returns the recipient id, or null on error.
+  // Called when an envelope is opened. Returns the recipient id, or null on error.
   async function draw() {
     try {
       const d = await api(`/p/${token}/draw`, { method: 'POST', body: { pin } })
@@ -84,41 +83,11 @@ export default function PersonalDraw({ token, event }) {
   if (step === 'setpin') return <SetPin name={me.name} onSave={savePin} />
   if (step === 'locked') return <Unlock name={me.name} onUnlock={unlock} />
 
-  if (step === 'intro') {
-    return (
-      <section className="card center">
-        <h2>Hi {me.name}! 👋</h2>
-        <p className="muted">Make sure nobody is looking 👀 How do you want to pick?</p>
-        <div className="methods">
-          <button className="method" onClick={() => setStep('wheel')}>
-            <span className="big-emoji">🎡</span>
-            <strong>Spin the wheel</strong>
-            <small>Let fate decide</small>
-          </button>
-          <button className="method" onClick={() => setStep('envelopes')}>
-            <span className="big-emoji">💌</span>
-            <strong>Pick a letter</strong>
-            <small>Choose one sealed envelope</small>
-          </button>
-        </div>
-      </section>
-    )
-  }
-
-  if (step === 'wheel') {
-    return (
-      <section className="card center">
-        <h2>Spin it, {me.name}! 🎡</h2>
-        <Wheel options={others} onSpin={draw} onDone={() => setStep('reveal')} />
-        {error && <p className="error">{error}</p>}
-      </section>
-    )
-  }
-
   if (step === 'envelopes') {
     return (
       <section className="card center">
         <h2>Pick a letter, {me.name} 💌</h2>
+        <p className="muted">Make sure nobody is looking 👀</p>
         <Envelopes
           count={others.length}
           onPick={draw}
