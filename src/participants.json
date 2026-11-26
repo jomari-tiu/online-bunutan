@@ -1,0 +1,33 @@
+{
+  "eventName": "Christmas Bunutan 2026",
+  "budget": "",
+  "exchangeDate": "",
+  "participants": [
+    "Noli",
+    "Jomari",
+    "Cindy",
+    "Jericho",
+    "Angel",
+    "Dustin",
+    "Cholo",
+    "Dhiane",
+    "Trixie",
+    "Jekisa",
+    "Christine",
+    "Papa",
+    "Mama",
+    "Tita Mavic",
+    "Tito Boyet",
+    "Mak"
+  ],
+  "alreadyPicked": [
+    {
+      "giver": "Jekisa",
+      "recipient": "Mama"
+    },
+    {
+      "giver": "Jomari",
+      "recipient": "Noli"
+    }
+  ]
+}
