@@ -104,14 +104,20 @@ export default function Organizer() {
                 <span className="avatar" style={{ background: color(i) }}>
                   {p.name[0].toUpperCase()}
                 </span>
-                <span className="pname">
-                  {p.name}{' '}
+                <span className="person">
+                  <span className="pname">{p.name}</span>
                   <span className={'badge' + (p.drawn ? ' done' : p.hasPin ? ' opened' : '')}>
                     {p.drawn ? '✅ drawn' : p.hasPin ? '🔒 opened' : 'not opened'}
                   </span>
                 </span>
                 <button className="btn small" onClick={() => copy(inviteText(p), p.id)}>
-                  {copied === p.id ? '✓ Copied' : '📋 Copy message'}
+                  {copied === p.id ? (
+                    '✓ Copied'
+                  ) : (
+                    <>
+                      📋 Copy<span className="wide-only"> message</span>
+                    </>
+                  )}
                 </button>
                 <button className="btn small ghost" onClick={() => copy(linkFor(p.token), p.id + ':link')}>
                   {copied === p.id + ':link' ? '✓' : '🔗 Link'}
