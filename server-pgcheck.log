@@ -1,0 +1,19 @@
+❌ Can’t save data to the database (ECONNREFUSED). Check DATABASE_URL (copy the connection string from Neon).
+🎁 Bunutan server running on http://localhost:8798
+Error: Can’t save data to the database (ECONNREFUSED). Check DATABASE_URL (copy the connection string from Neon).
+    at storageError (file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:170:13)
+    at file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:70:15
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async Object.read (file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:75:7)
+    at async Promise.all (index 1)
+    at async file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/app.js:39:69 {
+  expose: true
+}
+Error: Can’t save data to the database (ECONNREFUSED). Check DATABASE_URL (copy the connection string from Neon).
+    at storageError (file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:170:13)
+    at file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:70:15
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async Object.update (file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/store.js:81:7)
+    at async file:///C:/Users/jomti/Desktop/workspace/tiu-bunutan/server/src/app.js:173:20 {
+  expose: true
+}

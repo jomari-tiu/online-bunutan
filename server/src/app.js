@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import express from 'express'
 import cors from 'cors'
 import { generateAssignment } from './draw.js'
-import { loadConfig, readDb, updateDb } from './store.js'
+import { checkStorage, loadConfig, readDb, updateDb } from './store.js'
 
 /*
  * data/db.json looks like:
@@ -27,7 +27,11 @@ export function createApp({ corsOrigin = '*' } = {}) {
 
   // ---------- public ----------
 
-  app.get('/api/health', (req, res) => res.json({ ok: true }))
+  // Also reports whether the JSON file can be saved (the usual cause of a 500 on a new deploy).
+  app.get('/api/health', async (req, res) => {
+    const storage = await checkStorage()
+    res.status(storage.ok ? 200 : 500).json({ ok: storage.ok, storage })
+  })
 
   // Event info + names for the welcome page. Each name carries its link token so
   // people can tap their own name (token is null until the organizer generates pairs).
@@ -185,7 +189,7 @@ export function createApp({ corsOrigin = '*' } = {}) {
 
   app.use((err, req, res, next) => {
     console.error(err)
-    fail(res, 500, 'Something went wrong on the server.')
+    fail(res, 500, err.expose ? err.message : 'Something went wrong on the server.')
   })
 
   return app

@@ -114,7 +114,7 @@ test('pairs can’t be regenerated once people have drawn', async () => {
   assert.equal(status, 409)
 })
 
-test('the JSON file on disk holds the data', () => {
+test('the JSON file on disk holds the data', { skip: process.env.DATABASE_URL ? 'using Postgres' : false }, () => {
   const db = JSON.parse(fs.readFileSync(process.env.DATA_FILE, 'utf8'))
   assert.equal(Object.keys(db.people).length, 16)
   assert.ok(db.people.jomari.drawnAt)

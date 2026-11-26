@@ -2,12 +2,12 @@
 
 An online *bunutan* (Secret Santa / Monito-Monita) where everyone draws on their own phone.
 
-Two separate apps, **no database**:
+Two separate apps:
 
 | Folder | What it is |
 |---|---|
 | `/` (root) | **Frontend**: React + Vite. The pages people see. |
-| `server/` | **Backend**: Node + Express. Saves everything to one JSON file, `server/data/db.json`. |
+| `server/` | **Backend**: Node + Express. Saves everything as one JSON document: in **Postgres (Neon)** when `DATABASE_URL` is set, otherwise in a local file `server/data/db.json`. |
 
 ## Run it locally
 
@@ -40,15 +40,18 @@ npm test           # backend tests
 
 Deploy the **backend first**, because the frontend needs its address.
 
-### 1. Backend → Render
-1. Render → **New → Blueprint** → choose this GitHub repo. It reads `render.yaml`.
-2. When asked for `CORS_ORIGIN`, leave it as `*` for now. You'll set it in step 3.
-3. Create it. You'll get an address like `https://bunutan-server.onrender.com`.
-4. Check `https://bunutan-server.onrender.com/api/health`. It should show `{"ok":true}`.
+### 1. Backend → Render (data in Neon)
+1. In **Neon**, copy the **connection string** (Dashboard → Connect). It looks like
+   `postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require`.
+2. Render → **New → Web Service** → this repo, then set:
+   - Root Directory `server`, Build `npm ci`, Start `npm start`. The **Free** plan is fine.
+   - Environment: `NODE_ENV=production`, `DATABASE_URL=<Neon connection string>`, `CORS_ORIGIN=*` for now.
+   - Or use **New → Blueprint**, which reads `render.yaml`.
+3. Open `https://<render-name>.onrender.com/api/health`. It should show `"ok":true` and `"type":"postgres"`.
+   The table `bunutan_state` is created automatically on first use.
 
-> ⚠️ `render.yaml` uses the **Starter** plan with a **1 GB disk** mounted at `/var/data`, where `db.json` lives.
-> On the **free** plan there's no disk, so `db.json` is erased on every restart or redeploy, and free instances
-> restart after 15 minutes idle. All pairs, PINs and draws would be lost.
+> Free Render instances sleep after 15 minutes idle. The first request after that takes about a minute,
+> but no data is lost, because it lives in Neon.
 
 ### 2. Frontend → Vercel
 1. Vercel → **Add New → Project** → choose this repo. Root directory: the repo root. Framework: **Vite** (auto-detected).
@@ -62,9 +65,10 @@ On Render, set `CORS_ORIGIN` to your Vercel address (e.g. `https://online-bunuta
 Open `https://<your-vercel-site>/#/organizer`, press **Generate all pairs**, and send each link.
 
 **Changing `VITE_API_URL`?** Redeploy on Vercel. It's baked in at build time.
-**Changing `server/participants.json`?** Push it. Render redeploys, and the disk keeps `db.json`.
+**Changing `server/participants.json`?** Push it. Render redeploys; the data in Neon stays.
 
 ## Things to know
 - **The organizer page has no password.** Don't share the `/#/organizer` address: anyone who opens it can see every link.
-- **Back up `db.json`** (on Render: `/var/data/db.json`, via the Shell tab). It *is* the bunutan.
-- A forgotten PIN can't be recovered from the app. The organizer can clear that person's `pinHash`/`pinSalt` in `db.json`, then restart the server.
+- **The data** is one row in Neon's `bunutan_state` table (column `data`). Neon keeps backups/history; you can also copy it out with `SELECT data FROM bunutan_state`.
+- A forgotten PIN can't be recovered from the app. In Neon's SQL editor, clear it with:
+  `UPDATE bunutan_state SET data = data #- '{people,jomari,pinHash}' #- '{people,jomari,pinSalt}' WHERE id = 1;` (replace `jomari`).
